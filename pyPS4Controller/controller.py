@@ -1,392 +1,318 @@
-import os
 import struct
-import time
+from os import path
+from time import sleep
+import threading
+from typing import Optional
+from queue import Queue, Empty
 
-
-class Actions:
+class ControllerState:
     """
-    Actions are inherited in the Controller class.
-    In order to bind to the controller events, subclass the Controller class and
-    override desired action events in this class.
+    Represents the current state of the PS4 controller.
     """
-    def __init__(self):
-        return
+    def __init__(self) -> None:
+        self.x_button: bool = False
+        self.triangle_button: bool = False
+        self.circle_button: bool = False
+        self.square_button: bool = False
 
-    def on_x_press(self):
-        print("on_x_press")
+        self.L1_button: bool = False
+        self.L2_button: int = -32767
+        self.L3_button: bool = False
 
-    def on_x_release(self):
-        print("on_x_release")
+        self.R1_button: bool = False
+        self.R2_button: int = -32767
+        self.R3_button: bool = False
 
-    def on_triangle_press(self):
-        print("on_triangle_press")
+        self.up_arrow: bool = False
+        self.down_arrow: bool = False
+        self.left_arrow: bool = False
+        self.right_arrow: bool = False
 
-    def on_triangle_release(self):
-        print("on_triangle_release")
+        self.L3_x_axis: int = 0
+        self.L3_y_axis: int = 0
 
-    def on_circle_press(self):
-        print("on_circle_press")
+        self.R3_x_axis: int = 0
+        self.R3_y_axis: int = 0
 
-    def on_circle_release(self):
-        print("on_circle_release")
+        self.share_button: bool = False
+        self.options_button: bool = False
+        self.playstation_button: bool = False
 
-    def on_square_press(self):
-        print("on_square_press")
+    def to_dict(self) -> dict:
+        return {
+            'x_button': self.x_button,
+            'triangle_button': self.triangle_button,
+            'circle_button': self.circle_button,
+            'square_button': self.square_button,
+            'L1_button': self.L1_button,
+            'L2_button': self.L2_button,
+            'L3_button': self.L3_button,
+            'R1_button': self.R1_button,
+            'R2_button': self.R2_button,
+            'R3_button': self.R3_button,
+            'up_arrow': self.up_arrow,
+            'down_arrow': self.down_arrow,
+            'left_arrow': self.left_arrow,
+            'right_arrow': self.right_arrow,
+            'L3_x_axis': self.L3_x_axis,
+            'L3_y_axis': self.L3_y_axis,
+            'R3_x_axis': self.R3_x_axis,
+            'R3_y_axis': self.R3_y_axis,
+            'share_button': self.share_button,
+            'options_button': self.options_button,
+            'playstation_button': self.playstation_button
+        }
 
-    def on_square_release(self):
-        print("on_square_release")
-
-    def on_L1_press(self):
-        print("on_L1_press")
-
-    def on_L1_release(self):
-        print("on_L1_release")
-
-    def on_L2_press(self, value):
-        print("on_L2_press: {}".format(value))
-
-    def on_L2_release(self):
-        print("on_L2_release")
-
-    def on_R1_press(self):
-        print("on_R1_press")
-
-    def on_R1_release(self):
-        print("on_R1_release")
-
-    def on_R2_press(self, value):
-        print("on_R2_press: {}".format(value))
-
-    def on_R2_release(self):
-        print("on_R2_release")
-
-    def on_up_arrow_press(self):
-        print("on_up_arrow_press")
-
-    def on_up_down_arrow_release(self):
-        print("on_up_down_arrow_release")
-
-    def on_down_arrow_press(self):
-        print("on_down_arrow_press")
-
-    def on_left_arrow_press(self):
-        print("on_left_arrow_press")
-
-    def on_left_right_arrow_release(self):
-        print("on_left_right_arrow_release")
-
-    def on_right_arrow_press(self):
-        print("on_right_arrow_press")
-
-    def on_L3_up(self, value):
-        print("on_L3_up: {}".format(value))
-
-    def on_L3_down(self, value):
-        print("on_L3_down: {}".format(value))
-
-    def on_L3_left(self, value):
-        print("on_L3_left: {}".format(value))
-
-    def on_L3_right(self, value):
-        print("on_L3_right: {}".format(value))
-
-    def on_L3_y_at_rest(self):
-        """L3 joystick is at rest after the joystick was moved and let go off"""
-        print("on_L3_y_at_rest")
-
-    def on_L3_x_at_rest(self):
-        """L3 joystick is at rest after the joystick was moved and let go off"""
-        print("on_L3_x_at_rest")
-
-    def on_L3_press(self):
-        """L3 joystick is clicked. This event is only detected when connecting without ds4drv"""
-        print("on_L3_press")
-
-    def on_L3_release(self):
-        """L3 joystick is released after the click. This event is only detected when connecting without ds4drv"""
-        print("on_L3_release")
-
-    def on_R3_up(self, value):
-        print("on_R3_up: {}".format(value))
-
-    def on_R3_down(self, value):
-        print("on_R3_down: {}".format(value))
-
-    def on_R3_left(self, value):
-        print("on_R3_left: {}".format(value))
-
-    def on_R3_right(self, value):
-        print("on_R3_right: {}".format(value))
-
-    def on_R3_y_at_rest(self):
-        """R3 joystick is at rest after the joystick was moved and let go off"""
-        print("on_R3_y_at_rest")
-
-    def on_R3_x_at_rest(self):
-        """R3 joystick is at rest after the joystick was moved and let go off"""
-        print("on_R3_x_at_rest")
-
-    def on_R3_press(self):
-        """R3 joystick is clicked. This event is only detected when connecting without ds4drv"""
-        print("on_R3_press")
-
-    def on_R3_release(self):
-        """R3 joystick is released after the click. This event is only detected when connecting without ds4drv"""
-        print("on_R3_release")
-
-    def on_options_press(self):
-        print("on_options_press")
-
-    def on_options_release(self):
-        print("on_options_release")
-
-    def on_share_press(self):
-        """this event is only detected when connecting without ds4drv"""
-        print("on_share_press")
-
-    def on_share_release(self):
-        """this event is only detected when connecting without ds4drv"""
-        print("on_share_release")
-
-    def on_playstation_button_press(self):
-        """this event is only detected when connecting without ds4drv"""
-        print("on_playstation_button_press")
-
-    def on_playstation_button_release(self):
-        """this event is only detected when connecting without ds4drv"""
-        print("on_playstation_button_release")
-
-
-class Controller(Actions):
-
-    def __init__(
-            self, interface, connecting_using_ds4drv=True,
-            event_definition=None, event_format=None
-                ):
+class Controller:
+    def __init__(self, interface: str, event_format: str = "3Bh2b", event_definition=None) -> None:
         """
-        Initiate controller instance that is capable of listening to all events on specified input interface
-        :param interface: STRING aka /dev/input/js0 or any other PS4 Duelshock controller interface.
-                          You can see all available interfaces with a command "ls -la /dev/input/"
-        :param connecting_using_ds4drv: BOOLEAN. If you are connecting your controller using ds4drv, then leave it set
-                                                 to True. Otherwise if you are connecting directly via directly via
-                                                 bluetooth/bluetoothctl, set it to False otherwise the controller
-                                                 button mapping will be off.
+        Initialize the controller instance.
+        :param interface: Path to the device interface (e.g., /dev/input/js0).
+        :param event_format: The struct format to unpack the events.
+        :param event_definition: A callable class or function that maps button_id, button_type, and value 
+                                 to specific events. If None, uses a default mapping.
         """
-        Actions.__init__(self)
         self.stop = False
         self.is_connected = False
         self.interface = interface
-        self.connecting_using_ds4drv = connecting_using_ds4drv
-        self.debug = False  # If you want to see raw event stream, set this to True.
-        self.black_listed_buttons = []  # set a list of blocked buttons if you dont want to process their events
-        if self.connecting_using_ds4drv and event_definition is None:
-            # when device is connected via ds4drv its sending hundreds of events for those button IDs
-            # thus they are blacklisted by default. Feel free to adjust this list to your linking when sub-classing
-            self.black_listed_buttons += [6, 7, 8, 11, 12, 13]
-        self.event_format = event_format if event_format else "3Bh2b"
+        self.debug = False
+        self.event_format = event_format
 
-        if event_definition is None:  # means it wasn't specified by user
-            if self.event_format == "LhBB":
-                from pyPS4Controller.event_mapping.DefaultMapping import DefaultMapping
-                self.event_definition = DefaultMapping
-            else:
-                from pyPS4Controller.event_mapping.Mapping3Bh2b import Mapping3Bh2b
-                self.event_definition = Mapping3Bh2b
+        # Default mapping if none provided
+        if event_definition is None:
+            from event_mapping.Mapping3Bh2b import Mapping3Bh2b  # type: ignore
+            self.event_definition = Mapping3Bh2b
         else:
             self.event_definition = event_definition
 
         self.event_size = struct.calcsize(self.event_format)
-        self.event_history = []
+        self.event_history: list = []
+        self.state = ControllerState()
 
-    def listen(self, timeout=30, on_connect=None, on_disconnect=None, on_sequence=None):
-        """
-        Start listening for events on a given self.interface
-        :param timeout: INT, seconds. How long you want to wait for the self.interface.
-                        This allows you to start listening and connect your controller after the fact.
-                        If self.interface does not become available in N seconds, the script will exit with exit code 1.
-        :param on_connect: function object, allows to register a call back when connection is established
-        :param on_disconnect: function object, allows to register a call back when connection is lost
-        :param on_sequence: list, allows to register a call back on specific input sequence.
-                            e.g [{"inputs": ['up', 'up', 'down', 'down', 'left', 'right,
-                                             'left', 'right, 'start', 'options'],
-                                  "callback": () -> None)}]
-        :return: None
-        """
-        def on_disconnect_callback():
-            self.is_connected = False
-            if on_disconnect is not None:
-                on_disconnect()
+        # Queue to notify about new state updates
+        self._state_queue: Queue = Queue()
+        self._listening_thread: Optional[threading.Thread] = None
 
+    def start_listening(self, timeout=30):
+        """
+        Start the event reading in a separate thread.
+        """
+        self.stop = False
+        self._listening_thread = threading.Thread(
+            target=self.listen,
+            args=(timeout,),
+            daemon=True
+        )
+        self._listening_thread.start()
+
+    def stop_listening(self):
+        """
+        Stop listening and join the thread.
+        """
+        self.stop = True
+        if self._listening_thread is not None:
+            self._listening_thread.join()
+
+    def get_current_state(self):
+        """
+        Returns the current state as a dictionary.
+        """
+        return self.state.to_dict()
+
+    def state_updates(self):
+        """
+        A generator that yields the latest state whenever it is updated.
+        """
+        while not self.stop:
+            try:
+                self._state_queue.get(timeout=1)
+                yield self.get_current_state()
+            except Empty:
+                continue
+
+    def listen(self, timeout=30):
+        """
+        Listen for events on the interface.
+        :param timeout: How long to wait for the interface before giving up.
+        """
         def on_connect_callback():
             self.is_connected = True
-            if on_connect is not None:
-                on_connect()
+
+        def on_disconnect_callback():
+            self.is_connected = False
 
         def wait_for_interface():
-            print("Waiting for interface: {} to become available . . .".format(self.interface))
-            for i in range(timeout):
-                if os.path.exists(self.interface):
-                    print("Successfully bound to: {}.".format(self.interface))
+            for _ in range(timeout):
+                if path.exists(self.interface):
                     on_connect_callback()
-                    return
-                time.sleep(1)
-            print("Timeout({} sec). Interface not available.".format(timeout))
-            exit(1)
-
-        def read_events():
-            try:
-                return _file.read(self.event_size)
-            except IOError:
-                print("Interface lost. Device disconnected?")
-                on_disconnect_callback()
-                exit(1)
-
-        def check_for(sub, full, start_index):
-            return [start for start in range(start_index, len(full) - len(sub) + 1) if
-                    sub == full[start:start + len(sub)]]
-
-        def unpack():
-            __event = struct.unpack(self.event_format, event)
-            return (__event[3:], __event[2], __event[1], __event[0])
-
-        wait_for_interface()
-        try:
-            _file = open(self.interface, "rb")
-            event = read_events()
-            if on_sequence is None:
-                on_sequence = []
-            special_inputs_indexes = [0] * len(on_sequence)
-            while not self.stop and event:
-                (overflow, value, button_type, button_id) = unpack()
-                if button_id not in self.black_listed_buttons:
-                    self.__handle_event(button_id=button_id, button_type=button_type, value=value, overflow=overflow,
-                                        debug=self.debug)
-                for i, special_input in enumerate(on_sequence):
-                    check = check_for(special_input["inputs"], self.event_history, special_inputs_indexes[i])
-                    if len(check) != 0:
-                        special_inputs_indexes[i] = check[0] + 1
-                        special_input["callback"]()
-                event = read_events()
-        except KeyboardInterrupt:
-            print("\nExiting (Ctrl + C)")
+                    return True
+                sleep(1)
             on_disconnect_callback()
-            exit(1)
+            return False
 
-    def __handle_event(self, button_id, button_type, value, overflow, debug):
+        if not wait_for_interface():
+            return
 
-        event = self.event_definition(button_id=button_id,
-                                      button_type=button_type,
-                                      value=value,
-                                      connecting_using_ds4drv=self.connecting_using_ds4drv,
-                                      overflow=overflow,
-                                      debug=debug)
+        try:
+            with open(self.interface, "rb") as _file:
+                event = _file.read(self.event_size)
+                while not self.stop and event:
+                    (overflow, value, button_type, button_id) = self._unpack_event(event)
+                    self._handle_event(button_id, button_type, value, overflow)
+                    self._state_queue.put(True)
+                    event = _file.read(self.event_size)
 
+        except KeyboardInterrupt:
+            on_disconnect_callback()
+            self.stop_listening()
+
+    def _unpack_event(self, event):
+        __event = struct.unpack(self.event_format, event)
+        # event_definition uses a certain ordering
+        return (__event[3:], __event[2], __event[1], __event[0])
+
+    def _handle_event(self, button_id, button_type, value, overflow):
+
+        event = self.event_definition(
+            button_id=button_id,
+            button_type=button_type,
+            value=value,
+            connecting_using_ds4drv=False,  # ds4drv not used, set False
+            overflow=overflow,
+            debug=self.debug
+        )
+
+        # Update state based on event
+        # Add similar logic for all events you want to track.
+        # Below is an example set - you need to adapt to your event_definition's logic.
         if event.R3_event():
             self.event_history.append("right_joystick")
             if event.R3_y_at_rest():
-                self.on_R3_y_at_rest()
+                self.state.R3_y_axis = 0
             elif event.R3_x_at_rest():
-                self.on_R3_x_at_rest()
+                self.state.R3_x_axis = 0
             elif event.R3_right():
-                self.on_R3_right(event.value)
+                self.state.R3_x_axis = event.value
             elif event.R3_left():
-                self.on_R3_left(event.value)
+                self.state.R3_x_axis = event.value
             elif event.R3_up():
-                self.on_R3_up(event.value)
+                self.state.R3_y_axis = event.value
             elif event.R3_down():
-                self.on_R3_down(event.value)
+                self.state.R3_y_axis = event.value
+
         elif event.L3_event():
             self.event_history.append("left_joystick")
             if event.L3_y_at_rest():
-                self.on_L3_y_at_rest()
+                self.state.L3_y_axis = 0
             elif event.L3_x_at_rest():
-                self.on_L3_x_at_rest()
+                self.state.L3_x_axis = 0
             elif event.L3_up():
-                self.on_L3_up(event.value)
+                self.state.L3_y_axis = event.value
             elif event.L3_down():
-                self.on_L3_down(event.value)
+                self.state.L3_y_axis = event.value
             elif event.L3_left():
-                self.on_L3_left(event.value)
+                self.state.L3_x_axis = event.value
             elif event.L3_right():
-                self.on_L3_right(event.value)
+                self.state.L3_x_axis = event.value
+
         elif event.circle_pressed():
             self.event_history.append("circle")
-            self.on_circle_press()
+            self.state.circle_button = True
         elif event.circle_released():
-            self.on_circle_release()
+            self.state.circle_button = False
+
         elif event.x_pressed():
             self.event_history.append("x")
-            self.on_x_press()
+            self.state.x_button = True
         elif event.x_released():
-            self.on_x_release()
+            self.state.x_button = False
+
         elif event.triangle_pressed():
             self.event_history.append("triangle")
-            self.on_triangle_press()
+            self.state.triangle_button = True
         elif event.triangle_released():
-            self.on_triangle_release()
+            self.state.triangle_button = False
+
         elif event.square_pressed():
             self.event_history.append("square")
-            self.on_square_press()
+            self.state.square_button = True
         elif event.square_released():
-            self.on_square_release()
+            self.state.square_button = False
+
         elif event.L1_pressed():
             self.event_history.append("L1")
-            self.on_L1_press()
+            self.state.L1_button = True
         elif event.L1_released():
-            self.on_L1_release()
+            self.state.L1_button = False
+
         elif event.L2_pressed():
             self.event_history.append("L2")
-            self.on_L2_press(event.value)
+            self.state.L2_button = event.value
         elif event.L2_released():
-            self.on_L2_release()
+            self.state.L2_button = -32767
+
         elif event.R1_pressed():
             self.event_history.append("R1")
-            self.on_R1_press()
+            self.state.R1_button = True
         elif event.R1_released():
-            self.on_R1_release()
+            self.state.R1_button = False
+
         elif event.R2_pressed():
             self.event_history.append("R2")
-            self.on_R2_press(event.value)
+            self.state.R2_button = event.value
         elif event.R2_released():
-            self.on_R2_release()
+            self.state.R2_button = -32767
+
         elif event.options_pressed():
             self.event_history.append("options")
-            self.on_options_press()
+            self.state.options_button = True
         elif event.options_released():
-            self.on_options_release()
+            self.state.options_button = False
+
         elif event.left_right_arrow_released():
-            self.on_left_right_arrow_release()
+            self.state.left_arrow = False
+            self.state.right_arrow = False
+
         elif event.up_down_arrow_released():
-            self.on_up_down_arrow_release()
+            self.state.up_arrow = False
+            self.state.down_arrow = False
+
         elif event.left_arrow_pressed():
             self.event_history.append("left")
-            self.on_left_arrow_press()
+            self.state.left_arrow = True
+
         elif event.right_arrow_pressed():
             self.event_history.append("right")
-            self.on_right_arrow_press()
+            self.state.right_arrow = True
+
         elif event.up_arrow_pressed():
             self.event_history.append("up")
-            self.on_up_arrow_press()
+            self.state.up_arrow = True
+
         elif event.down_arrow_pressed():
             self.event_history.append("down")
-            self.on_down_arrow_press()
+            self.state.down_arrow = True
+
         elif event.playstation_button_pressed():
             self.event_history.append("ps")
-            self.on_playstation_button_press()
+            self.state.playstation_button = True
         elif event.playstation_button_released():
-            self.on_playstation_button_release()
+            self.state.playstation_button = False
+
         elif event.share_pressed():
             self.event_history.append("share")
-            self.on_share_press()
+            self.state.share_button = True
         elif event.share_released():
-            self.on_share_release()
+            self.state.share_button = False
+
         elif event.R3_pressed():
             self.event_history.append("R3")
-            self.on_R3_press()
+            self.state.R3_button = True
         elif event.R3_released():
-            self.on_R3_release()
+            self.state.R3_button = False
+
         elif event.L3_pressed():
             self.event_history.append("L3")
-            self.on_L3_press()
+            self.state.L3_button = True
         elif event.L3_released():
-            self.on_L3_release()
+            self.state.L3_button = False
